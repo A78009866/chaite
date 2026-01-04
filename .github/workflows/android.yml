@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ "main" ] # تأكد أن هذا هو اسم الفرع الرئيسي عندك (Main أو Master)
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
@@ -21,30 +21,30 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
-    # هذه الخطوة ستقوم بإنشاء ملف gradlew إذا كان مفقوداً في مستودعك
+    # إجبار الأكشن على استخدام إصدار Gradle 8.5 المتوافق مع أندرويد
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
+      with:
+        gradle-version: 8.5
 
     - name: Generate Gradle Wrapper
-      run: gradle wrapper
+      run: gradle wrapper --gradle-version 8.5
 
     - name: Make gradlew executable
       run: chmod +x ./gradlew
 
-    # خطوة إنشاء ملف Firebase من الـ Secrets
-    # تأكد من إضافة GOOGLE_SERVICES_JSON في إعدادات GitHub لديك
     - name: Create google-services.json
       env:
         GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
       run: |
         if [ -z "$GOOGLE_SERVICES_JSON" ]; then
-          echo "Error: GOOGLE_SERVICES_JSON secret is empty!"
+          echo "Error: GOOGLE_SERVICES_JSON secret is empty! Please add it in Settings > Secrets."
           exit 1
         fi
         echo $GOOGLE_SERVICES_JSON > app/google-services.json
 
     - name: Build Debug APK
-      run: ./gradlew assembleDebug
+      run: ./gradlew assembleDebug --stacktrace
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
