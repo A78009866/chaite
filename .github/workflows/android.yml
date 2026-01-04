@@ -2,6 +2,8 @@ name: Build Android APK
 
 on:
   push:
+    branches: [ "main" ] # تأكد أن هذا هو اسم الفرع الرئيسي عندك (Main أو Master)
+  pull_request:
     branches: [ "main" ]
 
 jobs:
@@ -9,10 +11,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # تم التحديث إلى v4
-    - uses: actions/checkout@v4
+    - name: Checkout Repository
+      uses: actions/checkout@v4
 
-    # تم التحديث إلى v4
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
@@ -20,21 +21,33 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
+    # هذه الخطوة ستقوم بإنشاء ملف gradlew إذا كان مفقوداً في مستودعك
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+
+    - name: Generate Gradle Wrapper
+      run: gradle wrapper
+
     - name: Make gradlew executable
       run: chmod +x ./gradlew
 
-    # تأكد من أنك أضفت السر GOOGLE_SERVICES_JSON في إعدادات المستودع
+    # خطوة إنشاء ملف Firebase من الـ Secrets
+    # تأكد من إضافة GOOGLE_SERVICES_JSON في إعدادات GitHub لديك
     - name: Create google-services.json
       env:
         GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-      run: echo $GOOGLE_SERVICES_JSON > app/google-services.json
+      run: |
+        if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+          echo "Error: GOOGLE_SERVICES_JSON secret is empty!"
+          exit 1
+        fi
+        echo $GOOGLE_SERVICES_JSON > app/google-services.json
 
-    - name: Build with Gradle
+    - name: Build Debug APK
       run: ./gradlew assembleDebug
 
-    # هنا كان الخطأ، تم التحديث إلى v4
-    - name: Upload APK
+    - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: app-debug
+        name: Chaite-App-Debug
         path: app/build/outputs/apk/debug/app-debug.apk
